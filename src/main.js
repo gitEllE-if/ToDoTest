@@ -13,79 +13,113 @@
 // 2. Описать ваши изменения в коде комментариями.
 // Изменять код можно как душа пожелает.
 
-var vue = require("vue");
+import vue from "vue";
+import todoList from "./todoListComponent";
+import "../style.css";
 
 window.app = new vue({
   el: "#app",
 
   data() {
     return {
-      innerData: {
-        zadachi: [],
-        activeFilter: ""
+      todoes: [],
+      activeFilter: "all",
+      filters: {
+        all: {
+          textRu: "все",
+          cb: () => true
+        },
+        active: {
+          textRu: "активные",
+          cb: (item) => item.active === true
+        },
+        completed: {
+          textRu: "завершенные",
+          cb: (item) => item.active === false
+        }
       },
-      value: "Задача 1"
+      newTodoTxt: ""
     };
   },
-  created() {
-    var search = document.getElementById("search") || {};
-    search.focus();
-    fetch("https://my-json-server.typicode.com/falk20/demo/todos").then(
-      (response) => (zadachi = response)
-    );
+  components: { todoList },
+  async created() {
+    try {
+      let res = await fetch(
+        "https://my-json-server.typicode.com/falk20/demo/todos"
+      );
+      res = await res.json();
+      this.todoes = res || [];
+    } catch (err) {
+      console.warn("FAIL - get todoes: " + err);
+    }
+  },
+  mounted() {
+    const input = this.$refs.input;
+    if (input) {
+      input.focus();
+    }
   },
   template: `
-    <div>
-        <input v-bind:value="value" id="search" />
-        <button v-on:click="todo()">Добавить задачу</button>
-
-        <div v-if="innerData.activeFilter == 'active'">
-          <div v-for="todo in innerData.zadachi" v-if="todo.completed != true">
-            {{ todo.name }}
-            <div v-on:click="remove(todo)"></div>
+    <div class="todo">
+      <form class="todo__form">
+        <div class="todo-add">
+          <input v-model="newTodoTxt"
+            placeholder="новая задача"
+            ref="input"
+            class="todo-add__input"
+            required
+          />
+          <button @click.prevent="addTodo" class="todo-add__btn">
+            Добавить задачу
+          </button>
+        </div>
+        <div class="todo-filter">
+          <div class="todo-filter-items" v-for="item in Object.keys(filters)">
+            <input type=radio
+              class="todo-filter__radio"
+              :value="item"
+              v-model="activeFilter"
+              name="filter"
+              :id="item"
+            />
+            <label :for="item" class="todo-filter__label">  
+              {{filters[item].textRu}}
+            </label>
           </div>
         </div>
-
-        <div v-if="innerData.activeFilter == 'Все'">
-        1212
-          <div v-for="todo in innerData.zadachi">
-            {{ todo.name }}
-            <div v-on:click="remove(todo)"></div>
-          </div>
-        </div>
-
-        <div v-if="innerData.activeFilter == 'completed'">
-          <div v-for="todo in innerData.zadachi" v-if="todo.completed == true">
-            {{ todo.name }}
-            <div v-on:click="remove(todo)"></div>
-          </div>
-        </div>
- 
-        <div>
-        <span v-on:click="setFilter('active')">Активные</span>
-        <span v-on:click="setFilter('all')">Все</span>
-        <span v-on:click="setFilter('completed')">Завершенные</span>
-        </div>
+      </form>
+      <todoList
+        :list="todoes.filter(filters[activeFilter].cb)"
+        @remove="removeTodo"
+        @change="changeTodo"
+      >
+      </todoList>
     </div>
   `,
 
   methods: {
-    todo(t) {
-      zadachi[zadachi.length + 1] = t;
-    },
-    remove(t) {
-      var todos = [];
-
-      for (var i = 0; i < todos.length; i++) {
-        if (todos[i].name != t.name) {
-          todos.push(todos[i]);
-        }
+    addTodo() {
+      if (!this.newTodoTxt) {
+        return;
       }
-      this.$set(this.innerData, "zadachi", todos);
+      const newTodo = {
+        id: this.todoes.length ? this.todoes[this.todoes.length - 1].id + 1 : 1,
+        text: this.newTodoTxt,
+        active: true
+      };
+      this.todoes.push(newTodo);
     },
-
-    setFilter(filter) {
-      this.$set(this.innerData, "activeFilter", filter);
+    removeTodo(itemId) {
+      const idx = this.todoes.findIndex((el) => el.id === itemId);
+      if (idx !== -1) {
+        this.todoes.splice(idx, 1);
+      }
+    },
+    changeTodo(itemId) {
+      const idx = this.todoes.findIndex((el) => el.id === itemId);
+      if (idx !== -1) {
+        this.todoes[idx].active = !this.todoes[idx].active;
+      }
     }
   }
 });
