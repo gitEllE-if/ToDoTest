@@ -22,6 +22,8 @@ window.app = new vue({
 
   data() {
     return {
+      //выбраны другие имена переменных и структура данных
+      //'innerData', 'zadachi' - плохой нейминг
       todoes: [],
       activeFilter: "all",
       filters: {
@@ -42,7 +44,12 @@ window.app = new vue({
     };
   },
   components: { todoList },
+  //запросы к API можно реализовать в хуке created,
+  //доступ к DOM реализуем в хуке mounted
   async created() {
+    //- применени синтаксис async await, как более читабельный;
+    //- запрос к API - потенциально опасный код,
+    //  требуется обработка ошибок, применен блок try catch
     try {
       let res = await fetch(
         "https://my-json-server.typicode.com/falk20/demo/todos"
@@ -54,11 +61,19 @@ window.app = new vue({
     }
   },
   mounted() {
+    //доступ к элементу лучше через ref, чем getElementById
     const input = this.$refs.input;
     if (input) {
-      input.focus();
+      // input.focus();
     }
   },
+
+  //- для фильтра по смыслу больше подходит группа input type=radio;
+  //- список задач вынесен в отдельный компонент,
+  //  (что делает код более структурированным, читабельным и т.п.);
+  //- для отображения списка задач применяется один и тот же компонент,
+  //  принимающий разные props, в зависимости от значеня фильтра,
+  //  (что позволяет избавиться от дублирования кода)
   template: `
     <div class="todo">
       <form class="todo__form">
@@ -73,6 +88,7 @@ window.app = new vue({
             Добавить задачу
           </button>
         </div>
+        
         <div class="todo-filter">
           <div class="todo-filter-items" v-for="item in Object.keys(filters)">
             <input type=radio
@@ -88,6 +104,7 @@ window.app = new vue({
           </div>
         </div>
       </form>
+
       <todoList
         :list="todoes.filter(filters[activeFilter].cb)"
         @remove="removeTodo"
@@ -98,6 +115,7 @@ window.app = new vue({
   `,
 
   methods: {
+    //методы добавления/удаления/изменения задачи полностью переписаны
     addTodo() {
       if (!this.newTodoTxt) {
         return;
@@ -121,5 +139,8 @@ window.app = new vue({
         this.todoes[idx].active = !this.todoes[idx].active;
       }
     }
+
+    //setFilter(filter) -  не нужен,
+    //реализовано с помощью input type=radio и реактивность
   }
 });
