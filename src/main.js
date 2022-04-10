@@ -64,7 +64,7 @@ window.app = new vue({
     //доступ к элементу лучше через ref, чем getElementById
     const input = this.$refs.input;
     if (input) {
-      // input.focus();
+      input.focus();
     }
   },
 
